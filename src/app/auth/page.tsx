@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth, GoogleSignIn } from '@/components/auth';
 import { Card, CardContent, LoadingSpinner, Alert } from '@/components/ui';
-import { ArrowLeft, Shield, Wifi } from 'lucide-react';
+import { ArrowLeft, Shield } from 'lucide-react';
 import { useState } from 'react';
 
 const CLUB_LOGO_URL = 'https://standardsclubvitv.github.io/image-api/images/logo_club.png';
@@ -132,15 +132,6 @@ export default function AuthPage() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Network Compatibility Note */}
-          <div className="mt-4 flex items-start gap-3 text-sm text-gray-500 bg-blue-50 p-4 rounded-lg">
-            <Wifi className="w-5 h-5 flex-shrink-0 text-blue-500 mt-0.5" />
-            <p>
-              Works on all networks including mobile data and campus WiFi. 
-              If popup is blocked, you&apos;ll be redirected to Google for authentication.
-            </p>
-          </div>
 
           {/* Security Note */}
           <div className="mt-4 flex items-start gap-3 text-sm text-gray-500">
