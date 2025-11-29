@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from 'react';
 import { User } from '@/types';
 import { onAuthStateChange, signInWithGoogle, signOut, handleRedirectResult } from '@/lib/firebase';
 
@@ -19,59 +19,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const [redirectChecked, setRedirectChecked] = useState(false);
+  const redirectCheckComplete = useRef(false);
+  const authListenerSet = useRef(false);
 
   // Handle client-side mounting to prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Handle redirect result after page reload (for networks that need redirect auth)
+  // Handle redirect result AND set up auth listener - do this ONCE on mount
   useEffect(() => {
-    if (!mounted || redirectChecked) return;
+    if (!mounted || redirectCheckComplete.current) return;
+    redirectCheckComplete.current = true;
 
-    const checkRedirectResult = async () => {
+    const initializeAuth = async () => {
       try {
+        // First, check for redirect result (for mobile auth)
+        console.log('Initializing auth - checking redirect result...');
         const redirectUser = await handleRedirectResult();
+        
         if (redirectUser) {
+          console.log('Got user from redirect:', redirectUser.email);
           setUser(redirectUser);
           setLoading(false);
+          return; // User is set, auth listener will confirm
         }
       } catch (error) {
         console.error('Error checking redirect result:', error);
-      } finally {
-        setRedirectChecked(true);
       }
+
+      // Set loading false if no redirect result - auth listener will handle rest
+      // Keep loading true until auth listener fires
     };
 
-    checkRedirectResult();
-  }, [mounted, redirectChecked]);
+    initializeAuth();
+  }, [mounted]);
 
+  // Set up auth state listener
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || authListenerSet.current) return;
+    authListenerSet.current = true;
 
+    console.log('Setting up auth state listener...');
     const unsubscribe = onAuthStateChange((authUser) => {
+      console.log('Auth state changed:', authUser?.email || 'null');
       setUser(authUser);
       setLoading(false);
       setIsRedirecting(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      authListenerSet.current = false;
+    };
   }, [mounted]);
 
   const signIn = useCallback(async () => {
     try {
       setLoading(true);
       setIsRedirecting(true);
+      
       const result = await signInWithGoogle();
       
-      // If result is null, redirect is happening - don't set loading to false
+      // If result is null, redirect is happening - page will reload
       if (result) {
+        // Popup auth succeeded
         setUser(result);
         setLoading(false);
         setIsRedirecting(false);
       }
-      // For redirect auth, the page will reload and onAuthStateChange will handle it
+      // For redirect auth, page reloads and handleRedirectResult handles it
     } catch (error) {
       console.error('Sign in error:', error);
       setLoading(false);

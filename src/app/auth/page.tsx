@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth, GoogleSignIn } from '@/components/auth';
 import { Card, CardContent, LoadingSpinner, Alert } from '@/components/ui';
 import { ArrowLeft, Shield } from 'lucide-react';
-import { useState } from 'react';
 
 const CLUB_LOGO_URL = 'https://standardsclubvitv.github.io/image-api/images/logo_club.png';
 
@@ -16,27 +15,37 @@ export default function AuthPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const hasRedirected = useRef(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
-    // Prevent multiple redirects
-    if (!loading && user && !hasRedirected.current) {
+    // Prevent multiple redirects and handle navigation
+    if (!loading && user && !hasRedirected.current && !isNavigating) {
+      console.log('User authenticated, redirecting to /apply...');
       hasRedirected.current = true;
-      // Use replace to prevent back button issues
-      router.replace('/apply');
+      setIsNavigating(true);
+      
+      // Small delay to ensure state is stable before navigation
+      const timer = setTimeout(() => {
+        router.replace('/apply');
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, isNavigating]);
 
-  // Show loading state during redirect check or while redirecting
-  if (loading || isRedirecting) {
+  // Show loading state during redirect check, while redirecting, or navigating
+  if (loading || isRedirecting || isNavigating) {
+    let loadingText = 'Loading...';
+    if (isNavigating) {
+      loadingText = 'Redirecting to application...';
+    } else if (isRedirecting) {
+      loadingText = 'Signing in...';
+    }
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <LoadingSpinner size="lg" text={isRedirecting ? "Signing in..." : "Loading..."} />
-          {isRedirecting && (
-            <p className="mt-4 text-sm text-gray-500">
-              You may be redirected to Google for authentication
-            </p>
-          )}
+          <LoadingSpinner size="lg" text={loadingText} />
         </div>
       </div>
     );
