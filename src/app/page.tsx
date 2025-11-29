@@ -188,10 +188,10 @@ export default function Home() {
           {/* Stats */}
           <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              { number: '500+', label: 'Active Members' },
-              { number: '50+', label: 'Events Conducted' },
-              { number: '20+', label: 'Industry Partners' },
-              { number: '8', label: 'Board Positions' },
+              { number: '70+', label: 'Active Members' },
+              { number: '30+', label: 'Events Conducted' },
+              { number: '2+', label: 'Industry Partners' },
+              { number: '16', label: 'Board Positions' },
             ].map((stat, idx) => (
               <div key={idx} className="text-center">
                 <p className="text-3xl sm:text-4xl font-bold text-blue-600">{stat.number}</p>
@@ -301,25 +301,25 @@ export default function Home() {
           <div className="space-y-8">
             {[
               {
-                date: 'December 1, 2025',
+                date: 'November 30, 2025',
                 title: 'Applications Open',
                 description: 'Start submitting your applications for board positions.',
                 status: 'current',
               },
               {
-                date: 'December 15, 2025',
+                date: 'December 10, 2025',
                 title: 'Application Deadline',
                 description: 'Last date to submit your application.',
                 status: 'upcoming',
               },
               {
-                date: 'December 20-25, 2025',
+                date: 'December 12-14, 2025',
                 title: 'Interview Round',
                 description: 'Shortlisted candidates will be interviewed.',
                 status: 'upcoming',
               },
               {
-                date: 'December 30, 2025',
+                date: 'December 20, 2025',
                 title: 'Results Announcement',
                 description: 'Final board members will be announced.',
                 status: 'upcoming',
