@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore, verifyIdToken } from '@/lib/firebase/admin';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
+import { sendConfirmationEmail } from '@/lib/email/mailer';
 
 export async function POST(request: NextRequest) {
   try {
@@ -87,6 +88,11 @@ export async function POST(request: NextRequest) {
       positions,
       submittedAt,
       status: 'pending',
+      emailStatus: {
+        sent: false,
+        attempts: 0,
+        error: null,
+      },
     };
 
     await db.collection('applications').doc(applicationId).set(applicationData);
@@ -96,38 +102,49 @@ export async function POST(request: NextRequest) {
       hasApplied: true,
     });
 
-    // Prepare email data (will be sent asynchronously)
+    // Prepare email data
     const positionNames = positions.map((p: { positionName: string }) => p.positionName);
 
-    // Send confirmation email
+    // Send confirmation email and update database with result
+    let emailSent = false;
+    let emailError: string | null = null;
+
     try {
-      const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/email/confirmation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          to: profile.email,
-          name: profile.fullName,
-          positions: positionNames,
-          applicationId,
-          submittedAt: submittedAt.toDate().toISOString(),
-        }),
+      const emailResult = await sendConfirmationEmail({
+        to: profile.email,
+        name: profile.fullName,
+        positions: positionNames,
+        applicationId,
+        submittedAt: submittedAt.toDate(),
       });
 
-      if (!emailResponse.ok) {
-        console.error('Failed to send confirmation email');
+      if (emailResult.success) {
+        emailSent = true;
+        console.log(`Confirmation email sent successfully to ${profile.email}`);
+      } else {
+        emailError = emailResult.error || 'Unknown error';
+        console.error(`Failed to send confirmation email: ${emailError}`);
       }
-    } catch (emailError) {
-      console.error('Email sending error:', emailError);
-      // Don't fail the submission if email fails
+    } catch (error) {
+      emailError = error instanceof Error ? error.message : 'Email sending failed';
+      console.error('Email sending error:', error);
     }
+
+    // Update the application with email status
+    await db.collection('applications').doc(applicationId).update({
+      emailStatus: {
+        sent: emailSent,
+        sentAt: emailSent ? Timestamp.now() : null,
+        error: emailError,
+        attempts: 1,
+      },
+    });
 
     return NextResponse.json({
       success: true,
       applicationId,
       message: 'Application submitted successfully',
+      emailSent,
     });
   } catch (error) {
     console.error('Application submission error:', error);

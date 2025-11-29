@@ -142,6 +142,10 @@ export const createApplication = async (
     userId,
     submittedAt,
     status: 'pending',
+    emailStatus: {
+      sent: false,
+      attempts: 0,
+    },
   };
 };
 
@@ -165,6 +169,12 @@ export const getUserApplication = async (userId: string): Promise<Application | 
     submittedAt: data.submittedAt?.toDate() || new Date(),
     status: data.status,
     adminNotes: data.adminNotes,
+    emailStatus: data.emailStatus ? {
+      sent: data.emailStatus.sent,
+      sentAt: data.emailStatus.sentAt?.toDate(),
+      error: data.emailStatus.error,
+      attempts: data.emailStatus.attempts,
+    } : undefined,
   };
 };
 
@@ -191,6 +201,12 @@ export const getApplications = async (
       submittedAt: data.submittedAt?.toDate() || new Date(),
       status: data.status,
       adminNotes: data.adminNotes,
+      emailStatus: data.emailStatus ? {
+        sent: data.emailStatus.sent,
+        sentAt: data.emailStatus.sentAt?.toDate(),
+        error: data.emailStatus.error,
+        attempts: data.emailStatus.attempts,
+      } : undefined,
     };
   });
 
@@ -213,6 +229,12 @@ export const getApplication = async (applicationId: string): Promise<Application
       submittedAt: data.submittedAt?.toDate() || new Date(),
       status: data.status,
       adminNotes: data.adminNotes,
+      emailStatus: data.emailStatus ? {
+        sent: data.emailStatus.sent,
+        sentAt: data.emailStatus.sentAt?.toDate(),
+        error: data.emailStatus.error,
+        attempts: data.emailStatus.attempts,
+      } : undefined,
     };
   }
   return null;

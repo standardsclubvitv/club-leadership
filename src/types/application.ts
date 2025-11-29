@@ -10,6 +10,13 @@ export interface ProfileData {
   photoURL?: string;
 }
 
+export interface EmailStatus {
+  sent: boolean;
+  sentAt?: Date;
+  error?: string;
+  attempts: number;
+}
+
 export interface Application {
   id: string;
   userId: string;
@@ -18,6 +25,7 @@ export interface Application {
   submittedAt: Date;
   status: 'pending' | 'reviewed' | 'shortlisted' | 'rejected';
   adminNotes?: string;
+  emailStatus?: EmailStatus;
 }
 
 export interface ApplicationCreateData {
