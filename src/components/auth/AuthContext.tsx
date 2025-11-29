@@ -19,79 +19,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
-  const redirectCheckComplete = useRef(false);
-  const authListenerSet = useRef(false);
+  const initComplete = useRef(false);
 
-  // Handle client-side mounting to prevent hydration mismatch
+  // Handle client-side mounting
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Handle redirect result AND set up auth listener - do this ONCE on mount
+  // Single initialization effect - handles both redirect result and auth listener
   useEffect(() => {
-    if (!mounted || redirectCheckComplete.current) return;
-    redirectCheckComplete.current = true;
+    if (!mounted || initComplete.current) return;
+    initComplete.current = true;
 
-    const initializeAuth = async () => {
+    let unsubscribe: (() => void) | null = null;
+
+    const initialize = async () => {
       try {
-        // First, check for redirect result (for mobile auth)
-        console.log('Initializing auth - checking redirect result...');
+        // Check for redirect result first (for mobile auth returning from Google)
         const redirectUser = await handleRedirectResult();
-        
         if (redirectUser) {
-          console.log('Got user from redirect:', redirectUser.email);
+          console.log('User from redirect:', redirectUser.email);
           setUser(redirectUser);
           setLoading(false);
-          return; // User is set, auth listener will confirm
         }
       } catch (error) {
-        console.error('Error checking redirect result:', error);
+        console.error('Redirect check error:', error);
       }
 
-      // Set loading false if no redirect result - auth listener will handle rest
-      // Keep loading true until auth listener fires
+      // Set up auth state listener - this will fire with current auth state
+      unsubscribe = onAuthStateChange((authUser) => {
+        console.log('Auth state:', authUser?.email || 'not signed in');
+        setUser(authUser);
+        setLoading(false);
+        setIsRedirecting(false);
+      });
     };
 
-    initializeAuth();
-  }, [mounted]);
-
-  // Set up auth state listener
-  useEffect(() => {
-    if (!mounted || authListenerSet.current) return;
-    authListenerSet.current = true;
-
-    console.log('Setting up auth state listener...');
-    const unsubscribe = onAuthStateChange((authUser) => {
-      console.log('Auth state changed:', authUser?.email || 'null');
-      setUser(authUser);
-      setLoading(false);
-      setIsRedirecting(false);
-    });
+    initialize();
 
     return () => {
-      unsubscribe();
-      authListenerSet.current = false;
+      if (unsubscribe) unsubscribe();
     };
   }, [mounted]);
 
   const signIn = useCallback(async () => {
     try {
-      setLoading(true);
       setIsRedirecting(true);
-      
       const result = await signInWithGoogle();
       
-      // If result is null, redirect is happening - page will reload
       if (result) {
-        // Popup auth succeeded
+        // Popup succeeded - set user directly
         setUser(result);
-        setLoading(false);
         setIsRedirecting(false);
       }
-      // For redirect auth, page reloads and handleRedirectResult handles it
+      // If null, redirect is happening - page will reload
     } catch (error) {
       console.error('Sign in error:', error);
-      setLoading(false);
       setIsRedirecting(false);
       throw error;
     }
@@ -99,18 +82,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      setLoading(true);
       await signOut();
       setUser(null);
-      setLoading(false);
     } catch (error) {
       console.error('Sign out error:', error);
-      setLoading(false);
       throw error;
     }
   }, []);
 
-  // Show loading state until mounted to prevent hydration mismatch
   const contextValue: AuthContextType = {
     user,
     loading: !mounted || loading,

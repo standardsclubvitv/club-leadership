@@ -14,48 +14,33 @@ export default function AuthPage() {
   const { user, loading, isRedirecting } = useAuth();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const hasRedirected = useRef(false);
-  const [isNavigating, setIsNavigating] = useState(false);
+  const navigationAttempted = useRef(false);
 
   useEffect(() => {
-    // Prevent multiple redirects and handle navigation
-    if (!loading && user && !hasRedirected.current && !isNavigating) {
-      console.log('User authenticated, redirecting to /apply...');
-      hasRedirected.current = true;
-      setIsNavigating(true);
+    // Only navigate if we have a user and haven't already tried
+    if (user && !loading && !navigationAttempted.current) {
+      navigationAttempted.current = true;
       
-      // Small delay to ensure state is stable before navigation
-      const timer = setTimeout(() => {
-        router.replace('/apply');
-      }, 100);
-      
-      return () => clearTimeout(timer);
+      // Use window.location for guaranteed navigation
+      // This works better than Next.js router on some browsers
+      window.location.href = '/apply';
     }
-  }, [user, loading, router, isNavigating]);
+  }, [user, loading]);
 
-  // Show loading state during redirect check, while redirecting, or navigating
-  if (loading || isRedirecting || isNavigating) {
-    let loadingText = 'Loading...';
-    if (isNavigating) {
-      loadingText = 'Redirecting to application...';
-    } else if (isRedirecting) {
-      loadingText = 'Signing in...';
-    }
-    
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <LoadingSpinner size="lg" text={loadingText} />
-        </div>
-      </div>
-    );
-  }
-
-  // If user is authenticated, show loading while redirecting
+  // If user exists and we're trying to navigate, show loading
   if (user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <LoadingSpinner size="lg" text="Redirecting to application..." />
+      </div>
+    );
+  }
+
+  // Show loading during initial auth check or sign-in process
+  if (loading || isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <LoadingSpinner size="lg" text={isRedirecting ? "Signing in..." : "Loading..."} />
       </div>
     );
   }
