@@ -1,65 +1,31 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth, GoogleSignIn } from '@/components/auth';
 import { Card, CardContent, LoadingSpinner, Alert } from '@/components/ui';
 import { ArrowLeft, Shield } from 'lucide-react';
-import { handleRedirectResult } from '@/lib/firebase';
 
 const CLUB_LOGO_URL = 'https://standardsclubvitv.github.io/image-api/images/logo_club.png';
 
 export default function AuthPage() {
-  const { user, loading, isRedirecting } = useAuth();
+  const { user, loading } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  const [checkingRedirect, setCheckingRedirect] = useState(true);
-  const redirectHandled = useRef(false);
 
-  // Check for redirect result on mount (for mobile returning from Google)
-  useEffect(() => {
-    if (redirectHandled.current) return;
-    redirectHandled.current = true;
-
-    const checkRedirect = async () => {
-      try {
-        const redirectUser = await handleRedirectResult();
-        if (redirectUser) {
-          // User returned from Google sign-in - redirect to apply
-          console.log('Redirect user found, navigating to /apply');
-          window.location.href = '/apply';
-          return;
-        }
-      } catch (err) {
-        console.error('Redirect check error:', err);
-      }
-      setCheckingRedirect(false);
-    };
-
-    checkRedirect();
-  }, []);
-
-  // If user exists, redirect to apply
+  // Redirect when user is authenticated
   useEffect(() => {
     if (user && !loading) {
+      // Use window.location for reliable redirect
       window.location.href = '/apply';
     }
   }, [user, loading]);
 
-  // Show loading while checking redirect or if user exists
-  if (checkingRedirect || user) {
+  // Show loading while checking auth or if user exists (redirecting)
+  if (loading || user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="lg" text="Checking authentication..." />
-      </div>
-    );
-  }
-
-  // Show loading during initial auth check or sign-in process
-  if (loading || isRedirecting) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="lg" text={isRedirecting ? "Signing in..." : "Loading..."} />
+        <LoadingSpinner size="lg" text={user ? "Redirecting..." : "Loading..."} />
       </div>
     );
   }

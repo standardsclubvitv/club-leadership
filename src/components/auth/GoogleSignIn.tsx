@@ -9,8 +9,8 @@ interface GoogleSignInProps {
   onError?: (error: Error) => void;
 }
 
-export default function GoogleSignIn({ onSuccess, onError }: GoogleSignInProps) {
-  const { signIn, loading, isRedirecting } = useAuth();
+export default function GoogleSignIn({ onError }: GoogleSignInProps) {
+  const { signIn, loading } = useAuth();
   const [isSigningIn, setIsSigningIn] = useState(false);
 
   const handleSignIn = async () => {
@@ -18,21 +18,18 @@ export default function GoogleSignIn({ onSuccess, onError }: GoogleSignInProps) 
       setIsSigningIn(true);
       const result = await signIn();
       
-      // If signIn returns a user (popup succeeded), redirect immediately
+      // If we got a user back, redirect to apply page
       if (result) {
         window.location.href = '/apply';
       }
-      // For redirect auth (mobile), Firebase handles the redirect to Google
-      // When user comes back, they land on /auth and AuthContext handles it
     } catch (error) {
       console.error('Sign in failed:', error);
-      onError?.(error as Error);
       setIsSigningIn(false);
+      onError?.(error as Error);
     }
   };
 
-  const isLoading = isSigningIn || loading || isRedirecting;
-  const buttonText = isRedirecting ? 'Redirecting...' : 'Sign in with Google';
+  const isLoading = isSigningIn || loading;
 
   return (
     <Button
@@ -64,7 +61,7 @@ export default function GoogleSignIn({ onSuccess, onError }: GoogleSignInProps) 
         ) : undefined
       }
     >
-      {buttonText}
+      Sign in with VIT Email ID
     </Button>
   );
 }

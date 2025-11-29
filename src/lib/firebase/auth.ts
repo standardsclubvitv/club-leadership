@@ -17,30 +17,8 @@ const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account',
 });
-// Add additional scopes for better compatibility
 googleProvider.addScope('email');
 googleProvider.addScope('profile');
-
-// Check if we should use redirect (mobile devices)
-const shouldUseRedirect = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  
-  // Check if on mobile device or tablet
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    navigator.userAgent
-  );
-  
-  // Also check for touch devices as additional indicator
-  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  
-  // Check if in standalone mode (PWA) or embedded browser
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-  
-  // Check for in-app browsers (Instagram, Facebook, etc.)
-  const isInAppBrowser = /FBAN|FBAV|Instagram|Twitter|Line/i.test(navigator.userAgent);
-  
-  return isMobile || isInAppBrowser || (isTouchDevice && isStandalone);
-};
 
 // Set persistence to local for better mobile support
 const initializeAuth = async () => {
@@ -53,87 +31,50 @@ const initializeAuth = async () => {
   }
 };
 
-// Initialize on load
 if (typeof window !== 'undefined') {
   initializeAuth();
 }
 
+// Always use popup - it's more reliable across devices
+// The issue with redirect is that getRedirectResult doesn't always work
 export const signInWithGoogle = async (): Promise<User | null> => {
   try {
-    const useRedirect = shouldUseRedirect();
-    
-    if (useRedirect) {
-      // Use redirect for mobile devices - more reliable
-      console.log('Using redirect auth for mobile device');
-      await signInWithRedirect(auth, googleProvider);
-      return null; // Redirect will reload the page
-    }
-    
-    // Desktop: try popup first
-    try {
-      console.log('Using popup auth for desktop');
-      const result = await signInWithPopup(auth, googleProvider);
-      const firebaseUser = result.user;
+    console.log('Starting Google sign-in with popup...');
+    const result = await signInWithPopup(auth, googleProvider);
+    const firebaseUser = result.user;
 
-      // Create or update user in Firestore
-      const user = await createOrUpdateUser({
-        email: firebaseUser.email || '',
-        displayName: firebaseUser.displayName || '',
-        photoURL: firebaseUser.photoURL,
-      });
+    console.log('Popup sign-in successful:', firebaseUser.email);
+    
+    // Create or update user in Firestore
+    const user = await createOrUpdateUser({
+      email: firebaseUser.email || '',
+      displayName: firebaseUser.displayName || '',
+      photoURL: firebaseUser.photoURL,
+    });
 
-      return user;
-    } catch (popupError: unknown) {
-      // If popup fails, fall back to redirect
-      const error = popupError as { code?: string };
-      console.log('Popup failed with code:', error.code);
-      
-      if (
-        error.code === 'auth/popup-blocked' ||
-        error.code === 'auth/popup-closed-by-user' ||
-        error.code === 'auth/cancelled-popup-request' ||
-        error.code === 'auth/network-request-failed' ||
-        error.code === 'auth/internal-error'
-      ) {
-        console.log('Falling back to redirect auth...');
-        await signInWithRedirect(auth, googleProvider);
-        return null;
-      }
-      throw popupError;
-    }
-  } catch (error) {
-    console.error('Error signing in with Google:', error);
+    return user;
+  } catch (error: unknown) {
+    const err = error as { code?: string; message?: string };
+    console.error('Sign-in error:', err.code, err.message);
     throw error;
   }
 };
 
-// Handle redirect result after page reload - MUST be called on page load
+// Keep for backwards compatibility but mainly rely on onAuthStateChange
 export const handleRedirectResult = async (): Promise<User | null> => {
   try {
-    console.log('Checking for redirect result...');
     const result = await getRedirectResult(auth);
-    
-    if (result && result.user) {
-      console.log('Redirect result found, creating user...');
-      const firebaseUser = result.user;
+    if (result?.user) {
       const user = await createOrUpdateUser({
-        email: firebaseUser.email || '',
-        displayName: firebaseUser.displayName || '',
-        photoURL: firebaseUser.photoURL,
+        email: result.user.email || '',
+        displayName: result.user.displayName || '',
+        photoURL: result.user.photoURL,
       });
-      console.log('User created from redirect:', user?.email);
       return user;
     }
-    
-    console.log('No redirect result found');
     return null;
-  } catch (error: unknown) {
-    const err = error as { code?: string };
-    // Ignore the error if it's just no redirect result
-    if (err.code === 'auth/popup-closed-by-user') {
-      return null;
-    }
-    console.error('Error handling redirect result:', error);
+  } catch (error) {
+    console.error('Redirect result error:', error);
     return null;
   }
 };
@@ -151,11 +92,32 @@ export const onAuthStateChange = (callback: (user: User | null) => void): (() =>
   return onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
     if (firebaseUser) {
       try {
-        const user = await getUser(firebaseUser.uid);
+        // User is signed in - create or get user from Firestore
+        let user = await getUser(firebaseUser.uid);
+        
+        // If user doesn't exist in Firestore yet, create them
+        if (!user) {
+          user = await createOrUpdateUser({
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || '',
+            photoURL: firebaseUser.photoURL,
+          });
+        }
+        
         callback(user);
       } catch (error) {
-        console.error('Error getting user:', error);
-        callback(null);
+        console.error('Error getting/creating user:', error);
+        // Still try to create a basic user object
+        try {
+          const user = await createOrUpdateUser({
+            email: firebaseUser.email || '',
+            displayName: firebaseUser.displayName || '',
+            photoURL: firebaseUser.photoURL,
+          });
+          callback(user);
+        } catch {
+          callback(null);
+        }
       }
     } else {
       callback(null);
