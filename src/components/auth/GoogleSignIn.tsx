@@ -16,18 +16,19 @@ export default function GoogleSignIn({ onSuccess, onError }: GoogleSignInProps) 
   const handleSignIn = async () => {
     try {
       setIsSigningIn(true);
-      await signIn();
-      // Only call onSuccess if we didn't redirect (popup auth succeeded)
-      // For redirect auth, the page will reload and auth state will handle navigation
-      if (!isRedirecting) {
-        onSuccess?.();
+      const result = await signIn();
+      
+      // If signIn returns a user (popup succeeded), redirect immediately
+      if (result) {
+        window.location.href = '/apply';
       }
+      // For redirect auth (mobile), Firebase handles the redirect to Google
+      // When user comes back, they land on /auth and AuthContext handles it
     } catch (error) {
       console.error('Sign in failed:', error);
       onError?.(error as Error);
       setIsSigningIn(false);
     }
-    // Don't set isSigningIn to false here - let loading state handle it
   };
 
   const isLoading = isSigningIn || loading || isRedirecting;

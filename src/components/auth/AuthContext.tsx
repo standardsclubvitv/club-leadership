@@ -7,7 +7,7 @@ import { onAuthStateChange, signInWithGoogle, signOut, handleRedirectResult } fr
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signIn: () => Promise<void>;
+  signIn: () => Promise<User | null>;
   logout: () => Promise<void>;
   isRedirecting: boolean;
 }
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [mounted]);
 
-  const signIn = useCallback(async () => {
+  const signIn = useCallback(async (): Promise<User | null> => {
     try {
       setIsRedirecting(true);
       const result = await signInWithGoogle();
@@ -71,8 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Popup succeeded - set user directly
         setUser(result);
         setIsRedirecting(false);
+        return result;
       }
       // If null, redirect is happening - page will reload
+      return null;
     } catch (error) {
       console.error('Sign in error:', error);
       setIsRedirecting(false);

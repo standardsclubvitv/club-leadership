@@ -1,37 +1,56 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth, GoogleSignIn } from '@/components/auth';
 import { Card, CardContent, LoadingSpinner, Alert } from '@/components/ui';
 import { ArrowLeft, Shield } from 'lucide-react';
+import { handleRedirectResult } from '@/lib/firebase';
 
 const CLUB_LOGO_URL = 'https://standardsclubvitv.github.io/image-api/images/logo_club.png';
 
 export default function AuthPage() {
   const { user, loading, isRedirecting } = useAuth();
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const navigationAttempted = useRef(false);
+  const [checkingRedirect, setCheckingRedirect] = useState(true);
+  const redirectHandled = useRef(false);
 
+  // Check for redirect result on mount (for mobile returning from Google)
   useEffect(() => {
-    // Only navigate if we have a user and haven't already tried
-    if (user && !loading && !navigationAttempted.current) {
-      navigationAttempted.current = true;
-      
-      // Use window.location for guaranteed navigation
-      // This works better than Next.js router on some browsers
+    if (redirectHandled.current) return;
+    redirectHandled.current = true;
+
+    const checkRedirect = async () => {
+      try {
+        const redirectUser = await handleRedirectResult();
+        if (redirectUser) {
+          // User returned from Google sign-in - redirect to apply
+          console.log('Redirect user found, navigating to /apply');
+          window.location.href = '/apply';
+          return;
+        }
+      } catch (err) {
+        console.error('Redirect check error:', err);
+      }
+      setCheckingRedirect(false);
+    };
+
+    checkRedirect();
+  }, []);
+
+  // If user exists, redirect to apply
+  useEffect(() => {
+    if (user && !loading) {
       window.location.href = '/apply';
     }
   }, [user, loading]);
 
-  // If user exists and we're trying to navigate, show loading
-  if (user) {
+  // Show loading while checking redirect or if user exists
+  if (checkingRedirect || user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="lg" text="Redirecting to application..." />
+        <LoadingSpinner size="lg" text="Checking authentication..." />
       </div>
     );
   }
