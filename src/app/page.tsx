@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Image from 'next/image';
 import Link from 'next/link';
@@ -271,7 +271,7 @@ export default function Home() {
                 className="bg-white p-6 rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all"
               >
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">{position.title}</h3>
-                <p className="text-sm text-gray-600 line-clamp-3">{position.description}</p>
+                <p className="text-sm text-gray-600 ">{position.description}</p>
               </div>
             ))}
           </div>
@@ -474,7 +474,7 @@ export default function Home() {
 
           <div className="mt-8 pt-8 border-t border-gray-800 text-center">
             <p className="text-gray-400 text-sm">
-              © {new Date().getFullYear()} BIS Standards Club VIT. All rights reserved.
+              Â© {new Date().getFullYear()} BIS Standards Club VIT. All rights reserved.
             </p>
           </div>
         </div>
