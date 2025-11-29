@@ -1,0 +1,26 @@
+{
+  "name": "BIS Standards Club VIT - Board Enrollment",
+  "short_name": "BIS Enrollment",
+  "description": "Apply to join the Board of BIS Standards Club VIT",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1E40AF",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://standardsclubvitv.github.io/image-api/images/logo_club.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://standardsclubvitv.github.io/image-api/images/logo_club.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "en-IN"
+}

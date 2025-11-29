@@ -1,0 +1,10 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Disallow admin and API routes from crawling
+Disallow: /admin
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://apply.standardsvit.live/sitemap.xml
