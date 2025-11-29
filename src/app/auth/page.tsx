@@ -90,13 +90,16 @@ export default function AuthPage() {
       <main className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <Image
-              src={CLUB_LOGO_URL}
-              alt="BIS Standards Club VIT Logo"
-              width={64}
-              height={64}
-              className="mx-auto mb-4 rounded-2xl"
-            />
+            <div className="inline-block bg-white p-2 rounded-2xl shadow-md mb-4">
+              <Image
+                src={CLUB_LOGO_URL}
+                alt="BIS Standards Club VIT Logo"
+                width={60}
+                height={60}
+                className="rounded-xl"
+                unoptimized
+              />
+            </div>
             <h1 className="text-2xl font-bold text-gray-900">Welcome to BIS Club VIT</h1>
             <p className="text-gray-600 mt-2">Sign in to apply for board positions</p>
           </div>
