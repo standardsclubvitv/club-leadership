@@ -13,6 +13,7 @@ const transporter = nodemailer.createTransport({
 
 const CLUB_LOGO_URL = 'https://standardsclubvitv.github.io/image-api/images/logo_club.png';
 const SUPPORT_EMAIL = 'standardsclub@vit.ac.in';
+const CC_EMAIL = 'support@standardsvit.live';
 const SOCIAL_LINKS = {
   instagram: 'https://www.instagram.com/standardsclubvit/',
   linkedin: 'https://www.linkedin.com/in/standards-club-vit-b512a829a/',
@@ -154,6 +155,7 @@ BIS Standards Club VIT
       await transporter.sendMail({
         from: process.env.EMAIL_FROM || 'BIS Standards Club VIT <noreply@bisclub.com>',
         to,
+        cc: CC_EMAIL,
         subject: 'Application Received - BIS Standards Club VIT Board Enrollment',
         text: textContent,
         html: htmlContent,

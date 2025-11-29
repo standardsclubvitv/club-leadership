@@ -1,11 +1,12 @@
 import { cn } from '@/lib/utils/helpers';
-import { AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
+import { AlertCircle, CheckCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 interface AlertProps {
   type?: 'info' | 'success' | 'warning' | 'error';
   title?: string;
   children: React.ReactNode;
   className?: string;
+  onClose?: () => void;
 }
 
 export default function Alert({
@@ -13,6 +14,7 @@ export default function Alert({
   title,
   children,
   className,
+  onClose,
 }: AlertProps) {
   const styles = {
     info: {
@@ -42,10 +44,19 @@ export default function Alert({
       )}
     >
       <div className="flex-shrink-0">{styles[type].icon}</div>
-      <div>
+      <div className="flex-1">
         {title && <h4 className="font-medium mb-1">{title}</h4>}
         <div className="text-sm">{children}</div>
       </div>
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="flex-shrink-0 p-1 rounded hover:bg-black/5 transition-colors"
+          aria-label="Dismiss"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      )}
     </div>
   );
 }

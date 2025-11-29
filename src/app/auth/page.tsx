@@ -1,47 +1,76 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth, GoogleSignIn } from '@/components/auth';
 import { Card, CardContent, LoadingSpinner, Alert } from '@/components/ui';
-import { ArrowLeft, Shield } from 'lucide-react';
+import { ArrowLeft, Shield, Wifi } from 'lucide-react';
 import { useState } from 'react';
 
 const CLUB_LOGO_URL = 'https://standardsclubvitv.github.io/image-api/images/logo_club.png';
 
 export default function AuthPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, isRedirecting } = useAuth();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    if (!loading && user) {
-      // Redirect authenticated users to apply page
-      router.push('/apply');
+    // Prevent multiple redirects
+    if (!loading && user && !hasRedirected.current) {
+      hasRedirected.current = true;
+      // Use replace to prevent back button issues
+      router.replace('/apply');
     }
   }, [user, loading, router]);
 
-  if (loading) {
+  // Show loading state during redirect check or while redirecting
+  if (loading || isRedirecting) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <LoadingSpinner size="lg" text="Loading..." />
+        <div className="text-center">
+          <LoadingSpinner size="lg" text={isRedirecting ? "Signing in..." : "Loading..."} />
+          {isRedirecting && (
+            <p className="mt-4 text-sm text-gray-500">
+              You may be redirected to Google for authentication
+            </p>
+          )}
+        </div>
       </div>
     );
   }
 
+  // If user is authenticated, show loading while redirecting
   if (user) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <LoadingSpinner size="lg" text="Redirecting to application..." />
+      </div>
+    );
   }
 
   const handleSuccess = () => {
-    router.push('/apply');
+    // Navigation is handled by useEffect when user state changes
+    // This ensures proper state synchronization
   };
 
   const handleError = (err: Error) => {
     console.error('Auth error:', err);
-    setError(err.message || 'Failed to sign in. Please try again.');
+    
+    // Provide user-friendly error messages
+    let message = 'Failed to sign in. Please try again.';
+    
+    if (err.message.includes('popup')) {
+      message = 'Sign-in popup was blocked. Please allow popups or try again.';
+    } else if (err.message.includes('network')) {
+      message = 'Network error. Please check your internet connection and try again.';
+    } else if (err.message.includes('cancelled') || err.message.includes('closed')) {
+      message = 'Sign-in was cancelled. Please try again when ready.';
+    }
+    
+    setError(message);
   };
 
   return (
@@ -75,7 +104,7 @@ export default function AuthPage() {
           <Card variant="elevated">
             <CardContent className="p-8">
               {error && (
-                <Alert type="error" className="mb-6">
+                <Alert type="error" className="mb-6" onClose={() => setError(null)}>
                   {error}
                 </Alert>
               )}
@@ -101,8 +130,17 @@ export default function AuthPage() {
             </CardContent>
           </Card>
 
+          {/* Network Compatibility Note */}
+          <div className="mt-4 flex items-start gap-3 text-sm text-gray-500 bg-blue-50 p-4 rounded-lg">
+            <Wifi className="w-5 h-5 flex-shrink-0 text-blue-500 mt-0.5" />
+            <p>
+              Works on all networks including mobile data and campus WiFi. 
+              If popup is blocked, you&apos;ll be redirected to Google for authentication.
+            </p>
+          </div>
+
           {/* Security Note */}
-          <div className="mt-6 flex items-start gap-3 text-sm text-gray-500">
+          <div className="mt-4 flex items-start gap-3 text-sm text-gray-500">
             <Shield className="w-5 h-5 flex-shrink-0 text-gray-400" />
             <p>
               Your information is secure. We only use your email for authentication 
